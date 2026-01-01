@@ -32,3 +32,4 @@ ENV MLFLOW_TRACKING_URI=http://mlflow:5000
 # Comando para ejecutar la API
 CMD ["python", "-m", "uvicorn", "src.infrastructure.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
+

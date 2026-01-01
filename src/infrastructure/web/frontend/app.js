@@ -136,3 +136,4 @@ async function loadModelInfo() {
 // Ejecutar al cargar la página
 window.addEventListener('load', loadModelInfo);
 
+
