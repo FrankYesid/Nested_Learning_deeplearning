@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicción de Churn - Deep Learning</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔮 Predicción de Churn de Clientes</h1>
+            <p class="subtitle">Sistema de predicción basado en Deep Learning con Nested Cross Validation</p>
+        </header>
+
+        <main>
+            <div class="form-container">
+                <form id="predictionForm">
+                    <div class="form-group">
+                        <label for="tenure">Meses de Permanencia (Tenure):</label>
+                        <input type="number" id="tenure" name="tenure" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone_service">Servicio Telefónico:</label>
+                        <select id="phone_service" name="phone_service" required>
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract">Tipo de Contrato:</label>
+                        <select id="contract" name="contract" required>
+                            <option value="Month-to-month">Month-to-month</option>
+                            <option value="One year">One year</option>
+                            <option value="Two year">Two year</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="paperless_billing">Facturación Sin Papel:</label>
+                        <select id="paperless_billing" name="paperless_billing" required>
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment_method">Método de Pago:</label>
+                        <select id="payment_method" name="payment_method" required>
+                            <option value="Electronic check">Electronic check</option>
+                            <option value="Mailed check">Mailed check</option>
+                            <option value="Bank transfer (automatic)">Bank transfer (automatic)</option>
+                            <option value="Credit card (automatic)">Credit card (automatic)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="monthly_charges">Cargos Mensuales ($):</label>
+                        <input type="number" id="monthly_charges" name="monthly_charges" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="total_charges">Cargos Totales ($):</label>
+                        <input type="number" id="total_charges" name="total_charges" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customer_id">ID del Cliente (Opcional):</label>
+                        <input type="text" id="customer_id" name="customer_id">
+                    </div>
+
+                    <button type="submit" id="submitBtn">Predecir Churn</button>
+                </form>
+            </div>
+
+            <div id="resultContainer" class="result-container hidden">
+                <h2>Resultado de la Predicción</h2>
+                <div id="resultContent">
+                    <div class="probability-display">
+                        <div class="probability-label">Probabilidad de Churn:</div>
+                        <div class="probability-value" id="probabilityValue">0%</div>
+                    </div>
+                    <div class="prediction-display">
+                        <div class="prediction-label">Predicción:</div>
+                        <div class="prediction-value" id="predictionValue">-</div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorContainer" class="error-container hidden">
+                <h3>Error</h3>
+                <p id="errorMessage"></p>
+            </div>
+
+            <div id="loadingContainer" class="loading-container hidden">
+                <div class="spinner"></div>
+                <p>Procesando predicción...</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by Deep Learning & MLflow</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
