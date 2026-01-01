@@ -31,22 +31,40 @@ app.add_middleware(
 
 # Inicializar componentes
 model_repository = ModelRepository()
-preprocessing_service = PreprocessingService()
+preprocessing_service = None
+
+
+def load_preprocessing_service():
+    """Carga el preprocessing service desde archivo guardado."""
+    global preprocessing_service
+    try:
+        import joblib
+        from pathlib import Path
+        
+        preprocessing_path = Path("models/preprocessing_service.pkl")
+        if preprocessing_path.exists():
+            preprocessing_service = joblib.load(preprocessing_path)
+            print("✅ Preprocessing service cargado desde archivo.")
+        else:
+            print("⚠️ Preprocessing service no encontrado. Inicializando nuevo (sin encoders entrenados).")
+            preprocessing_service = PreprocessingService()
+    except Exception as e:
+        print(f"⚠️ Error al cargar preprocessing service: {e}. Inicializando nuevo.")
+        preprocessing_service = PreprocessingService()
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Carga el modelo al iniciar la aplicación."""
+    """Carga el modelo y preprocessing service al iniciar la aplicación."""
     print("Cargando modelo desde MLflow...")
     model = model_repository.load_latest_model()
     if model is None:
         print("ADVERTENCIA: No se pudo cargar el modelo. Asegúrate de que el modelo esté registrado en MLflow.")
     else:
-        print("Modelo cargado exitosamente.")
+        print("✅ Modelo cargado exitosamente.")
     
-    # Cargar el preprocessing service (necesita los encoders entrenados)
-    # En producción, estos deberían guardarse junto con el modelo
-    print("NOTA: El preprocessing service necesita ser inicializado con datos de entrenamiento.")
+    # Cargar preprocessing service
+    load_preprocessing_service()
 
 
 @app.get("/")
@@ -113,8 +131,11 @@ async def predict_churn(request: PredictionRequest) -> PredictionResponse:
             "total_charges": request.total_charges
         }
         
-        # NOTA: En producción, el preprocessing_service debería cargarse desde un artefacto guardado
-        # Por ahora, asumimos que ya está entrenado
+        # Verificar que el preprocessing service esté cargado
+        if preprocessing_service is None:
+            load_preprocessing_service()
+        
+        # Preprocesar datos de entrada
         X = preprocessing_service.preprocess_single_prediction(input_data)
         
         # Realizar predicción
