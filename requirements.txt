@@ -62,3 +62,4 @@ python-dotenv==1.0.0
 jupyter==1.0.0
 ipykernel==6.27.1
 notebook==7.0.6
+brotli==1.1.0

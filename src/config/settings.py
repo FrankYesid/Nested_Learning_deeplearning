@@ -16,7 +16,7 @@ class Settings:
     
     # MLflow
     MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-    MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "churn_prediction_nested_cv")
+    MLFLOW_EXPERIMENT_NAME = os.getenv("MLRUNS_DIR", "churn_prediction_nested_cv")
     
     # API
     API_HOST = os.getenv("API_HOST", "0.0.0.0")

@@ -71,35 +71,51 @@ def load_preprocessing_service():
 @app.on_event("startup")
 async def startup_event():
     """Carga el modelo y preprocessing service al iniciar la aplicación."""
-    print("🚀 Iniciando API de Predicción de Churn...")
-    
-    # Cargar preprocessing service
-    load_preprocessing_service()
-    
-    # Intentar cargar modelo desde MLflow (opcional)
-    repo = get_model_repository()
-    if repo is not None:
-        print("📦 Intentando cargar modelo desde MLflow...")
+    try:
+        print("🚀 Iniciando API de Predicción de Churn...")
+        
+        # Cargar preprocessing service
         try:
-            model = repo.load_latest_model()
-            if model is None:
-                print("⚠️ ADVERTENCIA: No se pudo cargar el modelo desde MLflow.")
-                print("   La API funcionará pero las predicciones no estarán disponibles.")
-                print("   Para cargar un modelo:")
-                print("   1. Asegúrate de que MLflow esté corriendo: mlflow server --host 0.0.0.0 --port 5000")
-                print("   2. Entrena y registra el modelo usando el notebook de entrenamiento")
-            else:
-                print("✅ Modelo cargado exitosamente desde MLflow.")
+            load_preprocessing_service()
         except Exception as e:
-            print(f"⚠️ Error al cargar modelo: {e}")
-            print("   La API funcionará pero las predicciones no estarán disponibles.")
-    else:
-        print("⚠️ ModelRepository no disponible. MLflow no está corriendo.")
-        print("   Para usar la API con modelos:")
-        print("   1. Inicia MLflow: mlflow server --host 0.0.0.0 --port 5000")
-        print("   2. Reinicia la API")
-    
-    print("✅ API iniciada. Endpoints disponibles en http://localhost:8000")
+            print(f"⚠️ Error al cargar preprocessing service: {e}")
+            print("   Continuando sin preprocessing service guardado...")
+        
+        # Intentar cargar modelo desde MLflow (opcional)
+        try:
+            repo = get_model_repository()
+            if repo is not None:
+                print("📦 Intentando cargar modelo desde MLflow...")
+                try:
+                    model = repo.load_latest_model()
+                    if model is None:
+                        print("⚠️ ADVERTENCIA: No se pudo cargar el modelo desde MLflow.")
+                        print("   La API funcionará pero las predicciones no estarán disponibles.")
+                        print("   Para cargar un modelo:")
+                        print("   1. Asegúrate de que MLflow esté corriendo: mlflow server --host 0.0.0.0 --port 5000")
+                        print("   2. Entrena y registra el modelo usando el notebook de entrenamiento")
+                    else:
+                        print("✅ Modelo cargado exitosamente desde MLflow.")
+                except Exception as e:
+                    print(f"⚠️ Error al cargar modelo: {e}")
+                    print("   La API funcionará pero las predicciones no estarán disponibles.")
+            else:
+                print("⚠️ ModelRepository no disponible. MLflow no está corriendo.")
+                print("   Para usar la API con modelos:")
+                print("   1. Inicia MLflow: mlflow server --host 0.0.0.0 --port 5000")
+                print("   2. Reinicia la API")
+        except Exception as e:
+            print(f"⚠️ Error al inicializar ModelRepository: {e}")
+            print("   La API continuará sin MLflow. Inicia MLflow para cargar modelos.")
+        
+        print("✅ API iniciada. Endpoints disponibles en http://localhost:8000")
+        print("   - Documentación: http://localhost:8000/docs")
+        print("   - Health check: http://localhost:8000/health")
+        print("   - Frontend: http://localhost:8000/frontend")
+    except Exception as e:
+        print(f"❌ Error crítico en startup: {e}")
+        print("   La API puede no funcionar correctamente.")
+        # No lanzar la excepción para que la API pueda iniciar de todas formas
 
 
 @app.get("/")

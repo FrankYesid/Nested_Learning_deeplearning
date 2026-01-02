@@ -19,7 +19,8 @@ class PredictionRequest(BaseModel):
     customer_id: Optional[str] = Field(None, description="ID del cliente (opcional)")
     
     class Config:
-        schema_extra = {
+        # Pydantic v2 usa json_schema_extra en lugar de schema_extra
+        json_schema_extra = {
             "example": {
                 "tenure": 12,
                 "phone_service": "Yes",
@@ -42,7 +43,8 @@ class PredictionResponse(BaseModel):
     customer_id: Optional[str] = Field(None, description="ID del cliente")
     
     class Config:
-        schema_extra = {
+        # Pydantic v2 usa json_schema_extra en lugar de schema_extra
+        json_schema_extra = {
             "example": {
                 "churn_probability": 0.75,
                 "churn_prediction": "Yes",

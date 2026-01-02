@@ -2,10 +2,11 @@
 Modelo de Deep Learning para predicción de churn.
 """
 import numpy as np
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, models, callbacks
+from tensorflow.keras import layers, callbacks
+from tensorflow.keras.models import Sequential
 
 
 class DeepLearningModel:
@@ -47,35 +48,30 @@ class DeepLearningModel:
         """
         hp = self.hyperparameters
         
-        model = models.Sequential()
+        model = Sequential()
         
-        # Capa de entrada
+        # Input layer
         model.add(layers.Dense(
             hp['units_per_layer'][0],
             activation=hp['activation'],
             input_shape=(self.input_dim,),
-            name='input_layer'
         ))
-        model.add(layers.Dropout(hp['dropout_rate'], name='dropout_0'))
+        model.add(layers.Dropout(hp['dropout_rate']))
         
-        # Capas ocultas
+        # Hidden layers
         for i in range(1, min(hp['hidden_layers'], len(hp['units_per_layer']))):
             model.add(layers.Dense(
                 hp['units_per_layer'][i],
                 activation=hp['activation'],
-                name=f'hidden_layer_{i}'
             ))
-            model.add(layers.Dropout(hp['dropout_rate'], name=f'dropout_{i}'))
+            model.add(layers.Dropout(hp['dropout_rate']))
         
-        # Capa de salida (clasificación binaria)
-        model.add(layers.Dense(1, activation='sigmoid', name='output_layer'))
+        # Output layer
+        model.add(layers.Dense(1, activation='sigmoid'))
         
-        # Compilar modelo
+        # Compile model
         optimizer = self._get_optimizer(hp['optimizer'], hp['learning_rate'])
         
-        # Para clasificación binaria, usar solo accuracy durante el entrenamiento
-        # Precision y Recall se calcularán manualmente en evaluate() para evitar problemas
-        # con la configuración de métricas en Keras 2.15
         model.compile(
             optimizer=optimizer,
             loss='binary_crossentropy',
@@ -101,7 +97,7 @@ class DeepLearningModel:
         X_val: np.ndarray = None,
         y_val: np.ndarray = None,
         verbose: int = 1
-    ) -> keras.callbacks.History:
+    ):
         """
         Entrena el modelo.
         
@@ -137,7 +133,7 @@ class DeepLearningModel:
             )
         ]
         
-        # Entrenar
+        # Train
         validation_data = (X_val, y_val) if X_val is not None and y_val is not None else None
         
         history = self.model.fit(
@@ -167,18 +163,6 @@ class DeepLearningModel:
         
         return self.model.predict(X, verbose=0)
     
-    def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        """
-        Retorna probabilidades de churn.
-        
-        Args:
-            X: Características
-            
-        Returns:
-            Probabilidades de churn (0-1)
-        """
-        return self.predict(X)
-    
     def evaluate(self, X: np.ndarray, y: np.ndarray) -> Dict[str, float]:
         """
         Evalúa el modelo.
@@ -193,48 +177,25 @@ class DeepLearningModel:
         if self.model is None:
             raise ValueError("El modelo no ha sido entrenado o cargado.")
         
-        # Evaluar modelo
+        # Evaluate model
         results = self.model.evaluate(X, y, verbose=0)
         
-        # Obtener nombres de métricas del modelo
-        # El orden es: loss, luego las métricas en el orden que se definieron
-        metrics = {}
+        # Get metric names from model
+        metric_names = self.model.metrics_names
         
-        # Loss siempre es el primer elemento
-        if len(results) > 0:
-            metrics['loss'] = float(results[0])
+        # Create dictionary with metric names and values
+        metrics = dict(zip(metric_names, results))
         
-        # Las métricas siguen en el mismo orden que se definieron en compile
-        metric_index = 1
-        for metric in self.model.metrics:
-            if metric_index < len(results):
-                metric_name = metric.name if hasattr(metric, 'name') else str(metric)
-                metrics[metric_name] = float(results[metric_index])
-                metric_index += 1
-        
-        # Calcular métricas adicionales con sklearn para consistencia
+        # Add additional metrics with sklearn for consistency
         from sklearn.metrics import precision_score, recall_score, f1_score
         y_pred = (self.predict(X) > 0.5).astype(int).flatten()
         
-        # Usar sklearn para precision y recall (más confiable)
+        # Use sklearn for precision and recall (more reliable)
         metrics['precision'] = float(precision_score(y, y_pred, zero_division=0))
         metrics['recall'] = float(recall_score(y, y_pred, zero_division=0))
         metrics['f1_score'] = float(f1_score(y, y_pred, zero_division=0))
         
-        # Asegurar que accuracy esté presente
-        if 'accuracy' not in metrics and len(results) > 1:
-            metrics['accuracy'] = float(results[1])
-        
         return metrics
-    
-    def get_model_summary(self) -> str:
-        """Retorna un resumen del modelo."""
-        if self.model is None:
-            return "Modelo no construido aún."
-        
-        summary_list = []
-        self.model.summary(print_fn=lambda x: summary_list.append(x))
-        return '\n'.join(summary_list)
     
     def save_model(self, filepath: str):
         """Guarda el modelo en disco."""
@@ -245,4 +206,3 @@ class DeepLearningModel:
     def load_model(self, filepath: str):
         """Carga el modelo desde disco."""
         self.model = keras.models.load_model(filepath)
-

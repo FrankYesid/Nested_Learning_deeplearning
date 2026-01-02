@@ -2,6 +2,14 @@
 """
 Script de ayuda para ejecutar la API de predicción de churn.
 """
+# Suprimir warnings comunes
+try:
+    from src.config.suppress_warnings import *
+except ImportError:
+    import warnings
+    warnings.filterwarnings('ignore', message='.*pkg_resources.*')
+    warnings.filterwarnings('ignore', message='.*schema_extra.*')
+
 import uvicorn
 from src.config.settings import settings
 

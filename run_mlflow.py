@@ -1,27 +1,41 @@
 #!/usr/bin/env python
 """
-Script de ayuda para ejecutar el servidor MLflow.
+Script para ejecutar el servidor de MLflow.
 """
+
+# -------------------------------------------------------
+# 1. Configurar runtime ANTES de cualquier otro import
+# -------------------------------------------------------
+from src.config.runtime import configure_runtime
+configure_runtime()
+
+# -------------------------------------------------------
+# 2. Imports estándar
+# -------------------------------------------------------
 import subprocess
 import sys
-from pathlib import Path
+
+# -------------------------------------------------------
+# 3. Configuración del proyecto
+# -------------------------------------------------------
 from src.config.settings import settings
 
-if __name__ == "__main__":
-    print("="*60)
+
+def run_mlflow_server():
+    print("=" * 60)
     print("📊 Iniciando MLflow Tracking Server")
-    print("="*60)
-    print(f"URI: {settings.MLFLOW_TRACKING_URI}")
+    print("=" * 60)
+    print(f"Tracking URI : {settings.MLFLOW_TRACKING_URI}")
     print(f"Artifact Root: {settings.MLRUNS_DIR}")
-    print("="*60)
+    print("=" * 60)
     print("\n🌐 MLflow UI disponible en:")
     print(f"   {settings.MLFLOW_TRACKING_URI}")
-    print("\n" + "="*60 + "\n")
-    
-    # Asegurar que el directorio existe
+    print("\n" + "=" * 60 + "\n")
+
+    # Asegurar directorios
     settings.ensure_directories()
-    
-    # Ejecutar MLflow server
+
+    # Comando MLflow
     cmd = [
         sys.executable, "-m", "mlflow", "server",
         "--host", "0.0.0.0",
@@ -29,10 +43,14 @@ if __name__ == "__main__":
         "--backend-store-uri", f"file:{settings.MLRUNS_DIR}",
         "--default-artifact-root", f"file:{settings.MLRUNS_DIR}"
     ]
-    
+
     try:
-        subprocess.run(cmd)
+        subprocess.run(cmd, check=True)
     except KeyboardInterrupt:
-        print("\n\n👋 MLflow server detenido.")
+        print("\n👋 MLflow server detenido.")
+    except subprocess.CalledProcessError as e:
+        print("\n❌ Error al iniciar MLflow:", e)
 
 
+if __name__ == "__main__":
+    run_mlflow_server()
