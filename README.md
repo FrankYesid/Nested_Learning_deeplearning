@@ -145,9 +145,12 @@ project-churn-nested-learning/
 
 ## 🔧 Requisitos
 
-- Python 3.10+
+- **Python 3.10 o 3.11** (⚠️ NO compatible con Python 3.12+ debido a TensorFlow 2.15.0)
 - Docker y Docker Compose (opcional, para despliegue)
 - MLflow Tracking Server
+
+> 📌 **IMPORTANTE**: TensorFlow 2.15.0 solo soporta Python 3.9, 3.10 y 3.11.  
+> Ver [VERSION_PYTHON.md](VERSION_PYTHON.md) para más detalles sobre compatibilidad.
 
 ## 📦 Instalación
 
@@ -158,20 +161,51 @@ git clone <repository-url>
 cd Nested_Learning_deeplearning
 ```
 
-### 2. Crear entorno virtual
+### 2. Verificar versión de Python
 
 ```bash
-python -m venv venv
+# Verificar que tienes Python 3.10 o 3.11
+python --version
+
+# Si tienes Python 3.12+, necesitas instalar Python 3.10 o 3.11
+# Descarga desde: https://www.python.org/downloads/
+```
+
+### 3. Crear entorno virtual
+
+**Con UV (Recomendado):**
+```bash
+# Crear entorno con Python 3.10
+uv venv --python 3.10
+
+# O con Python 3.11
+uv venv --python 3.11
+
+# Activar entorno (Windows PowerShell)
+.venv\Scripts\Activate.ps1
+
+# Activar entorno (macOS/Linux)
+source .venv/bin/activate
+```
+
+**Método tradicional:**
+```bash
+# Asegúrate de usar Python 3.10 o 3.11
+python3.10 -m venv venv  # o python3.11
 source venv/bin/activate  # En Windows: venv\Scripts\activate
 ```
 
-### 3. Instalar dependencias
+### 4. Instalar dependencias
 
 ```bash
+# Con UV
+uv pip install -r requirements.txt
+
+# O con pip tradicional
 pip install -r requirements.txt
 ```
 
-### 4. Configurar MLflow (opcional)
+### 5. Configurar MLflow (opcional)
 
 Si quieres usar un servidor MLflow externo, configura la variable de entorno:
 
