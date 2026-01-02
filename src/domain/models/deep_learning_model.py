@@ -72,10 +72,14 @@ class DeepLearningModel:
         
         # Compilar modelo
         optimizer = self._get_optimizer(hp['optimizer'], hp['learning_rate'])
+        
+        # Para clasificación binaria, usar solo accuracy durante el entrenamiento
+        # Precision y Recall se calcularán manualmente en evaluate() para evitar problemas
+        # con la configuración de métricas en Keras 2.15
         model.compile(
             optimizer=optimizer,
             loss='binary_crossentropy',
-            metrics=['accuracy', 'precision', 'recall']
+            metrics=['accuracy']
         )
         
         self.model = model
@@ -189,18 +193,37 @@ class DeepLearningModel:
         if self.model is None:
             raise ValueError("El modelo no ha sido entrenado o cargado.")
         
+        # Evaluar modelo
         results = self.model.evaluate(X, y, verbose=0)
-        metrics = {
-            'loss': results[0],
-            'accuracy': results[1],
-            'precision': results[2],
-            'recall': results[3]
-        }
         
-        # Calcular F1-score
-        from sklearn.metrics import f1_score
+        # Obtener nombres de métricas del modelo
+        # El orden es: loss, luego las métricas en el orden que se definieron
+        metrics = {}
+        
+        # Loss siempre es el primer elemento
+        if len(results) > 0:
+            metrics['loss'] = float(results[0])
+        
+        # Las métricas siguen en el mismo orden que se definieron en compile
+        metric_index = 1
+        for metric in self.model.metrics:
+            if metric_index < len(results):
+                metric_name = metric.name if hasattr(metric, 'name') else str(metric)
+                metrics[metric_name] = float(results[metric_index])
+                metric_index += 1
+        
+        # Calcular métricas adicionales con sklearn para consistencia
+        from sklearn.metrics import precision_score, recall_score, f1_score
         y_pred = (self.predict(X) > 0.5).astype(int).flatten()
-        metrics['f1_score'] = f1_score(y, y_pred)
+        
+        # Usar sklearn para precision y recall (más confiable)
+        metrics['precision'] = float(precision_score(y, y_pred, zero_division=0))
+        metrics['recall'] = float(recall_score(y, y_pred, zero_division=0))
+        metrics['f1_score'] = float(f1_score(y, y_pred, zero_division=0))
+        
+        # Asegurar que accuracy esté presente
+        if 'accuracy' not in metrics and len(results) > 1:
+            metrics['accuracy'] = float(results[1])
         
         return metrics
     

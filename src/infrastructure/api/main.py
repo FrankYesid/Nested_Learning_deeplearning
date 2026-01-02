@@ -29,9 +29,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicializar componentes
-model_repository = ModelRepository()
+# Inicializar componentes (lazy initialization para evitar errores al importar)
+model_repository = None
 preprocessing_service = None
+
+
+def get_model_repository():
+    """Obtiene el repositorio de modelos (lazy initialization)."""
+    global model_repository
+    if model_repository is None:
+        try:
+            model_repository = ModelRepository()
+        except Exception as e:
+            print(f"⚠️ Advertencia: No se pudo inicializar ModelRepository: {e}")
+            print("   La API funcionará pero no podrá cargar modelos desde MLflow.")
+            print("   Asegúrate de que MLflow esté corriendo en http://localhost:5000")
+            # Crear un objeto dummy para evitar errores
+            model_repository = None
+    return model_repository
 
 
 def load_preprocessing_service():
@@ -56,15 +71,35 @@ def load_preprocessing_service():
 @app.on_event("startup")
 async def startup_event():
     """Carga el modelo y preprocessing service al iniciar la aplicación."""
-    print("Cargando modelo desde MLflow...")
-    model = model_repository.load_latest_model()
-    if model is None:
-        print("ADVERTENCIA: No se pudo cargar el modelo. Asegúrate de que el modelo esté registrado en MLflow.")
-    else:
-        print("✅ Modelo cargado exitosamente.")
+    print("🚀 Iniciando API de Predicción de Churn...")
     
     # Cargar preprocessing service
     load_preprocessing_service()
+    
+    # Intentar cargar modelo desde MLflow (opcional)
+    repo = get_model_repository()
+    if repo is not None:
+        print("📦 Intentando cargar modelo desde MLflow...")
+        try:
+            model = repo.load_latest_model()
+            if model is None:
+                print("⚠️ ADVERTENCIA: No se pudo cargar el modelo desde MLflow.")
+                print("   La API funcionará pero las predicciones no estarán disponibles.")
+                print("   Para cargar un modelo:")
+                print("   1. Asegúrate de que MLflow esté corriendo: mlflow server --host 0.0.0.0 --port 5000")
+                print("   2. Entrena y registra el modelo usando el notebook de entrenamiento")
+            else:
+                print("✅ Modelo cargado exitosamente desde MLflow.")
+        except Exception as e:
+            print(f"⚠️ Error al cargar modelo: {e}")
+            print("   La API funcionará pero las predicciones no estarán disponibles.")
+    else:
+        print("⚠️ ModelRepository no disponible. MLflow no está corriendo.")
+        print("   Para usar la API con modelos:")
+        print("   1. Inicia MLflow: mlflow server --host 0.0.0.0 --port 5000")
+        print("   2. Reinicia la API")
+    
+    print("✅ API iniciada. Endpoints disponibles en http://localhost:8000")
 
 
 @app.get("/")
@@ -84,19 +119,41 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Endpoint de health check."""
-    model = model_repository.load_latest_model()
+    repo = get_model_repository()
+    model_loaded = False
+    mlflow_available = repo is not None
+    
+    if repo is not None:
+        try:
+            model = repo.load_latest_model()
+            model_loaded = model is not None
+        except Exception:
+            model_loaded = False
+    
     return {
         "status": "healthy",
-        "model_loaded": model is not None
+        "model_loaded": model_loaded,
+        "mlflow_available": mlflow_available,
+        "mlflow_uri": settings.MLFLOW_TRACKING_URI
     }
 
 
 @app.get("/model/info")
 async def get_model_info():
     """Obtiene información del modelo actual."""
-    info = model_repository.get_model_info()
+    repo = get_model_repository()
+    if repo is None:
+        raise HTTPException(
+            status_code=503,
+            detail="MLflow no está disponible. Inicia el servidor MLflow primero."
+        )
+    
+    info = repo.get_model_info()
     if info is None:
-        raise HTTPException(status_code=404, detail="Modelo no encontrado en MLflow")
+        raise HTTPException(
+            status_code=404,
+            detail="Modelo no encontrado en MLflow. Entrena y registra el modelo primero."
+        )
     return info
 
 
@@ -112,12 +169,20 @@ async def predict_churn(request: PredictionRequest) -> PredictionResponse:
         Predicción de churn con probabilidad
     """
     try:
+        # Obtener repositorio
+        repo = get_model_repository()
+        if repo is None:
+            raise HTTPException(
+                status_code=503,
+                detail="MLflow no está disponible. Inicia el servidor MLflow primero: mlflow server --host 0.0.0.0 --port 5000"
+            )
+        
         # Cargar modelo
-        model = model_repository.load_latest_model()
+        model = repo.load_latest_model()
         if model is None:
             raise HTTPException(
                 status_code=503,
-                detail="Modelo no disponible. Por favor, entrena y registra el modelo primero."
+                detail="Modelo no disponible. Por favor, entrena y registra el modelo primero usando el notebook de entrenamiento."
             )
         
         # Preprocesar datos de entrada

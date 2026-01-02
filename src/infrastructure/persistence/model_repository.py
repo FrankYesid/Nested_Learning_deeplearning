@@ -17,9 +17,21 @@ class ModelRepository:
     def __init__(self):
         """Inicializa el repositorio."""
         self.mlflow_tracking = MLflowTracking()
-        self.client = MlflowClient(settings.MLFLOW_TRACKING_URI)
+        self._mlflow_uri = settings.MLFLOW_TRACKING_URI
+        self._client = None  # Lazy initialization
         self._cached_model = None
         self._cached_model_uri = None
+    
+    @property
+    def client(self):
+        """Obtiene el cliente MLflow (lazy initialization)."""
+        if self._client is None:
+            try:
+                self._client = MlflowClient(self._mlflow_uri)
+            except Exception as e:
+                print(f"⚠️ Advertencia: No se pudo crear cliente MLflow: {e}")
+                raise
+        return self._client
     
     def load_latest_model(self, model_name: str = None, stage: str = None) -> Optional[object]:
         """
